@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Panel & Host Screen</title>
+</head>
+<body>
+    <h1>Quiz Admin Panel</h1>
+    
+    <textarea id="momText" rows="10" cols="50" placeholder="Paste your Minutes of Meeting (MOM) text here..."></textarea><br>
+    <button onclick="loadQuiz()">1. Generate & Load Quiz</button>
+    <p id="loadStatus"></p>
+    
+    <hr>
+    
+    <h2>Game Control</h2>
+    <button onclick="triggerNextQuestion()" id="nextBtn" disabled>2. Next Question / Start Quiz</button>
+    <p>Questions Loaded: <span id="qCount">0</span></p>
+    <p>Players in Lobby: <span id="playerCount">0</span></p>
+
+    <h2>Live Leaderboard</h2>
+    <ul id="leaderboardList"></ul>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        
+        // --- Admin Functions ---
+        async function loadQuiz() {
+            const momText = document.getElementById('momText').value;
+            if (!momText) {
+                document.getElementById('loadStatus').textContent = "Please paste the MOM text.";
+                return;
+            }
+            
+            document.getElementById('loadStatus').textContent = "Generating...";
+            document.getElementById('nextBtn').disabled = true;
+
+            const response = await fetch('/admin/load-quiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mom: momText })
+            });
+
+            const data = await response.json();
+            document.getElementById('loadStatus').textContent = data.message;
+            if (data.success) {
+                 document.getElementById('nextBtn').disabled = false;
+            }
+        }
+        
+        function triggerNextQuestion() {
+            socket.emit('admin_next_question');
+        }
+
+        // --- Socket Listeners (for Host Screen) ---
+        socket.on('quiz_loaded', (data) => {
+            document.getElementById('qCount').textContent = data.questionCount;
+            document.getElementById('loadStatus').innerHTML = 
+                `<span style="color:green">✅ Success! ${data.questionCount} questions ready.</span>`;
+            document.getElementById('nextBtn').disabled = false;
+        });
+
+        socket.on('update_players', (players) => {
+            document.getElementById('playerCount').textContent = players.length;
+        });
+        
+        socket.on('update_leaderboard', (leaderboard) => {
+            const list = document.getElementById('leaderboardList');
+            list.innerHTML = '';
+            leaderboard.forEach((player, index) => {
+                list.innerHTML += `<li>#${index + 1} ${player.name}: ${player.score} points</li>`;
+            });
+        });
+        
+        socket.on('new_question', (payload) => {
+            // Display the question on the host screen/projector
+            console.log("Host sees new question:", payload);
+            document.getElementById('loadStatus').textContent = `Q${payload.index + 1}: ${payload.question}`;
+        });
+    </script>
+</body>
+</html>
