@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GDG Live Quiz</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     
     <style>
         :root {
@@ -29,6 +30,23 @@
             0% { background-position: 0% 50%; } 
             50% { background-position: 100% 50%; } 
             100% { background-position: 0% 50%; } 
+        }
+
+        /* LOGO STYLES */
+        #gdgLogo {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 130px; 
+            height: auto;
+            z-index: 2000;
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        @media (max-width: 400px) {
+            #gdgLogo { width: 100px; top: 15px; left: 15px; padding: 5px; }
         }
 
         .card {
@@ -61,14 +79,13 @@
 
         .option-btn {
             width: 100%; padding: 20px;
-            border: 4px solid transparent; /* Prepare for border change */
+            border: 4px solid transparent; 
             border-radius: 16px;
             font-size: 1.1rem; font-weight: 700; color: #000;
             cursor: pointer; transition: transform 0.1s, opacity 0.3s;
             text-align: left; position: relative;
         }
 
-        /* Explicit Background Colors */
         .opt-0 { background-color: var(--gdg-red) !important; }
         .opt-1 { background-color: var(--gdg-blue) !important; }
         .opt-2 { background-color: var(--gdg-green) !important; }
@@ -76,12 +93,12 @@
 
         /* Result States */
         .btn-correct {
-            border-color: #34A853 !important; /* Green Border */
+            border-color: #34A853 !important; 
             background-image: linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3));
             transform: scale(1.02);
         }
         .btn-wrong {
-            border-color: #EA4335 !important; /* Red Border */
+            border-color: #EA4335 !important; 
             opacity: 0.7;
         }
         .btn-dimmed { opacity: 0.3; }
@@ -108,31 +125,12 @@
         .lb-item:nth-child(1) { color: #FBBC04; font-size: 1.1em; } /* Gold for #1 */
 
         .hidden { display: none !important; }
-    /* LOGO STYLES */
-        #gdgLogo {
-            position: fixed;
-            top: 18px;
-            left: 18px;
-            width: 120px; /* Adjust size as needed */
-            height: auto;
-            z-index: 2000; /* Ensure it stays on top of everything */
-            background: white;
-            padding: 8px;
-            border-radius: 50%;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        
-        /* Optional: Hide on very small screens if it blocks text */
-        @media (max-width: 350px) {
-            #gdgLogo { width: 40px; top: 10px; left: 10px; }
-        }
     </style>
 </head>
 <body>
-    <img id="gdgLogo" src="data:image/png;base64,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" alt="GDG Logo">
 
-    <div id="countdownOverlay" class="hidden">3</div>
-    ...
+    <img id="gdgLogo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Google_Developers_logo.svg/1200px-Google_Developers_logo.svg.png" alt="GDG Logo">
+
     <div id="countdownOverlay" class="hidden">3</div>
 
     <div id="lbModal">
@@ -143,7 +141,7 @@
 
     <div class="card">
         <div id="lobby">
-            <h1 class="flowy-text">Let's see<br>What you learnt?</h1>
+            <h1 class="flowy-text">GDG<br>Quiz Night</h1>
             <p style="color:#5f6368;">Join the live quiz session</p>
             <input type="text" id="nameInput" placeholder="Enter your name">
             <br>
@@ -180,7 +178,6 @@
         let currentLeaderboard = [];
         let selectedIndex = -1;
 
-        // --- LOBBY ---
         function joinLobby() {
             const name = document.getElementById('nameInput').value.trim();
             if (name) {
@@ -191,9 +188,9 @@
             }
         }
 
-        // --- GAME LOGIC ---
         socket.on('new_question', (payload) => {
-            // 1. Start Countdown
+            closeLeaderboard();
+
             startCountdown(3, () => {
                 startRound(payload);
             });
@@ -225,10 +222,10 @@
             
             document.getElementById('questionNumber').innerText = `Q${payload.index + 1}`;
             document.getElementById('questionText').innerText = payload.question;
-            document.getElementById('resultBanner').innerText = ""; // Clear previous result
+            document.getElementById('resultBanner').innerText = ""; 
             
             const optionsDiv = document.getElementById('options');
-            optionsDiv.innerHTML = ''; // Clear old buttons
+            optionsDiv.innerHTML = ''; 
             
             payload.options.forEach((option, index) => {
                 const btn = document.createElement('button');
@@ -239,19 +236,19 @@
                 optionsDiv.appendChild(btn);
             });
 
-            // --- TIMER LOGIC (10 SECONDS) ---
+            // Timer (10s)
             const bar = document.getElementById('timerBar');
             bar.style.transition = "none";
             bar.style.width = "100%";
             
-            // Wait 50ms then start animation
             setTimeout(() => { 
                 bar.style.transition = "width 10s linear"; 
                 bar.style.width = "0%"; 
             }, 50);
 
-            // Hard stop after 10 seconds
             if (timerInterval) clearTimeout(timerInterval);
+            
+            // Auto-show leaderboard after time up
             timerInterval = setTimeout(() => {
                 disableButtons();
                 const banner = document.getElementById('resultBanner');
@@ -259,7 +256,8 @@
                      banner.innerText = "⏰ TIME'S UP!";
                      banner.style.color = "#EA4335";
                 }
-            }, 10000); // 10000ms = 10s
+                setTimeout(() => { showLeaderboard(); }, 1500);
+            }, 10000); 
         }
 
         function disableButtons() {
@@ -270,11 +268,10 @@
         }
 
         function submitAnswer(index) {
-            selectedIndex = index; // Remember what we clicked
+            selectedIndex = index; 
             socket.emit('submit_answer', index);
             disableButtons();
             
-            // Highlight selected immediately (visual feedback)
             const btn = document.getElementById(`btn-${index}`);
             if(btn) {
                 btn.style.border = "4px solid #333";
@@ -282,12 +279,11 @@
             }
         }
 
-        // --- RECEIVE SCORE/RESULT ---
+        // --- ANSWER & ANIMATION LOGIC ---
         socket.on('answer_result', (data) => {
             const myBtn = document.getElementById(`btn-${selectedIndex}`);
             const banner = document.getElementById('resultBanner');
 
-            // Dim others
             document.querySelectorAll('.option-btn').forEach(btn => {
                 if (btn.id !== `btn-${selectedIndex}`) btn.classList.add('btn-dimmed');
             });
@@ -296,7 +292,11 @@
                 if(myBtn) myBtn.classList.add('btn-correct');
                 banner.innerText = "✨ CORRECT! (+10)";
                 banner.style.color = "#34A853";
-                document.getElementById('playerScore').innerText = data.score; // UPDATE SCORE
+                document.getElementById('playerScore').innerText = data.score;
+                
+                // 2. TRIGGER PARTY POPPER! 🎉
+                triggerConfetti();
+
             } else {
                 if(myBtn) myBtn.classList.add('btn-wrong');
                 banner.innerText = "❌ INCORRECT";
@@ -304,7 +304,16 @@
             }
         });
 
-        // --- LEADERBOARD ---
+        // 3. CONFETTI FUNCTION
+        function triggerConfetti() {
+            // Shoots confetti from left and right edges
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }
+
         socket.on('update_leaderboard', (data) => {
             currentLeaderboard = data;
         });
